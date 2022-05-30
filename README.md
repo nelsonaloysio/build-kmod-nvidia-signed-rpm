@@ -14,13 +14,13 @@ usage: build-kmod-nvidia-signed-rpm [-h|--help]
 
 ## Guide
 
-1. On Silverblue/Kinoite, first layer the required [Nvidia proprietary driver packages](https://rpmfusion.org/Howto/NVIDIA#Determining_your_card_model) with:
+1. On Silverblue/Kinoite, first layer the required [Nvidia proprietary driver package](https://rpmfusion.org/Howto/NVIDIA#Determining_your_card_model) with:
 
 ```
-sudo dnf install akmod-nvidia         # kmod-nvidia for CentOS/RHEL
-# sudo dnf install akmod-nvidia-470xx # GeForce 600/700 series
-# sudo dnf install akmod-nvidia-390xx # GeForce 400/500 series
-# sudo dnf install akmod-nvidia-340xx # GeFore 8/9/200/300 series
+rpm-ostree install xorg-x11-drv-nvidia
+# rpm-ostree install xorg-x11-drv-nvidia-470xx # GeForce 600/700 series
+# rpm-ostree install xorg-x11-drv-nvidia-390xx # GeForce 400/500 series
+# rpm-ostree install xorg-x11-drv-nvidia-340xx # GeFore 8/9/200/300 series
 ```
 
 2. Reboot the OS, [create a new Machine Owner Key](https://rpmfusion.org/Howto/Secure%20Boot) (MOK) if needed and enroll it (choose a password to be entered on next boot):
@@ -42,8 +42,7 @@ To later update the deployed kernel or Nvidia driver, remove the layered package
 
 ```
 rpm-ostree remove kmod-nvidia-signed-rpm &&
-rpm-ostree update &&
-rpm-ostree install akmod-nvidia
+rpm-ostree update
 ```
 
 Reboot into your new deployment and execute the script again in order to sign the new Nvidia kernel modules:
