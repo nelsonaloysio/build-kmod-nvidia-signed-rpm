@@ -101,9 +101,16 @@ Summary:        Signed nvidia kernel module(s)
 License:        Redistributable, no modification permitted
 Source0:        %{name}-%{version}-%{release}.%{_arch}.tar.gz
 URL:            $URL
+
 Requires:       $(rpm -q kernel --qf "%{NAME} = %{VERSION}\n")
-Requires:       $(rpm -q kernel-headers --qf "%{NAME} = %{VERSION}\n")
-Requires:       $(rpm -qa --qf "%{NAME} = %{EPOCH}:%{VERSION}\n" | grep -wm1 "$(echo $PACKAGE | cut -f1 -d\ )")
+Requires:       $(rpm -qa --qf "%{NAME} = %{EPOCH}:%{VERSION}\n" | grep -wm1 "$(echo $PACKAGE | cut -f1 -d\ | sed 's/akmod/xorg-x11-drv/') ")
+
+Provides:       $(rpm -qa --qf "%{NAME} = %{EPOCH}:%{VERSION}\n" | grep -wm1 "$(echo $PACKAGE | cut -f1 -d\ )")
+Obsoletes:      $(rpm -qa --qf "%{NAME} = %{EPOCH}:%{VERSION}\n" | grep -wm1 "$(echo $PACKAGE | cut -f1 -d\ )")
+
+Provides:       $(rpm -qa --qf "%{NAME} = %{EPOCH}:%{VERSION}\n" | grep -wm1 "$(echo $PACKAGE | cut -f1 -d\ | sed 's/akmod/xorg-x11-drv/')-kmodsrc")
+Obsoletes:      $(rpm -qa --qf "%{NAME} = %{EPOCH}:%{VERSION}\n" | grep -wm1 "$(echo $PACKAGE | cut -f1 -d\ | sed 's/akmod/xorg-x11-drv/')-kmodsrc")
+
 BuildArch:      $ARCH
 ExclusiveArch:  $ARCH
 
