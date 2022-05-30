@@ -103,7 +103,7 @@ Source0:        %{name}-%{version}-%{release}.%{_arch}.tar.gz
 URL:            $URL
 Requires:       $(rpm -q kernel --qf "%{NAME} = %{VERSION}\n")
 Requires:       $(rpm -q kernel-headers --qf "%{NAME} = %{VERSION}\n")
-Requires:       $(rpm -qa --qf "%{NAME} = %{EPOCH}:%{VERSION}\n" | grep -wm1 "$(echo $PACKAGE | cut -f1 -d\ )
+Requires:       $(rpm -qa --qf "%{NAME} = %{EPOCH}:%{VERSION}\n" | grep -wm1 "$(echo $PACKAGE | cut -f1 -d\ )")
 BuildArch:      $ARCH
 ExclusiveArch:  $ARCH
 
