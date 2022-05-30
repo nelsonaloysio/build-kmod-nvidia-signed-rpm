@@ -12,7 +12,47 @@ usage: build-kmod-nvidia-signed-rpm [-h|--help]
                                     [-n|--assume-no]
 ```
 
-### Notes
+## Guide
+
+1. On Silverblue/Kinoite, first layer the required [Nvidia proprietary driver packages](https://rpmfusion.org/Howto/NVIDIA#Determining_your_card_model) with:
+
+```
+sudo dnf install akmod-nvidia         # kmod-nvidia for CentOS/RHEL
+# sudo dnf install akmod-nvidia-470xx # GeForce 600/700 series
+# sudo dnf install akmod-nvidia-390xx # GeForce 400/500 series
+# sudo dnf install akmod-nvidia-340xx # GeFore 8/9/200/300 series
+```
+
+2. Reboot the OS, [create a new Machine Owner Key](https://rpmfusion.org/Howto/Secure%20Boot) (MOK) if needed and enroll it (choose a password to be entered on next boot):
+
+```
+sudo kmodgenca
+sudo mokutil --import /etc/pki/akmods/certs/public_key.der
+```
+
+3. Generate a new RPM file with the signed modules and layer the newly created package:
+
+```
+sudo ./build-kmod-nvidia-signed-rpm --assume-yes
+```
+
+### Update kernel/nvidia driver
+
+To later update the deployed kernel or Nvidia driver, remove the layered package and update the deployment:
+
+```
+rpm-ostree remove kmod-nvidia-signed-rpm &&
+rpm-ostree update &&
+rpm-ostree install akmod-nvidia
+```
+
+Reboot into your new deployment and execute the script again in order to sign the new Nvidia kernel modules:
+
+```
+sudo ./build-kmod-nvidia-signed-rpm --assume-yes
+```
+
+## Notes
 
 * This script is meant as a workaround to solve issues regarding immutable deployments and unsigned drivers.
 
