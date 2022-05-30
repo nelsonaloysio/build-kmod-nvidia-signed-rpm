@@ -1,0 +1,164 @@
+#!/usr/bin/env bash
+
+# build-kmod-nvidia-signed-rpm
+
+# Automatically signs the NVIDIA kernel modules and builds
+# an RPM package to be layered using rpm-ostree, allowing
+# to secure boot the OS (Fedora Silverblue/Kinoite 36+).
+
+URL="https://github.com/nelsonaloysio/build-kmod-nvidia-signed-rpm"
+
+# Check arguments
+for arg in "${@}"
+do
+    case $arg in
+        -h|--help)
+            echo "usage: $(basename $0) [-h|--help] [-y|--assume-yes] [-n|--assume-no]" &&
+            exit 0
+            ;;
+        -y|--assume-yes)
+            YES=1
+            ;;
+        -n|--assume-no)
+            NO=1
+            ;;
+    esac
+done
+
+# Check if super user is executing
+[ "$EUID" -ne 0 ] &&
+echo "Error: please run this script as root (e.g. with 'sudo')." &&
+exit 1
+
+# Check if NVIDIA modules exist
+[ ! -d "/usr/lib/modules/$(uname -r)/extra/nvidia" ] &&
+echo "Error: unable to find '/usr/lib/modules/$(uname -r)/extra/nvidia'.\nPlease install the nvidia drivers before executing this script." &&
+exit 1
+
+# Check if akmods-generated Machine Owner Keys (MOKs) exist
+([ ! -L /etc/pki/akmods/private/private_key.priv ] || [ ! -L /etc/pki/akmods/certs/public_key.der ] ) &&
+echo """Error: unable to find MOK in '/etc/pki/akmods/{certs,private}'.
+
+To create the self generated key and certificate (run as sudo):
+
+/usr/sbin/kmodgenca
+
+To import the key, the command will ask for a password to
+be entered once during the special EFI window after reboot:
+
+mokutil --import /etc/pki/akmods/certs/public_key.der""" &&
+exit 1
+
+# Check if RPM build directories exist
+( [ -d ${HOME}/rpmbuild ] || [ -L ${HOME}/rpmbuild ] ) &&
+RPMBUILD=1 ||
+RPMBUILD=0
+
+# Create RPM build directories
+for directory in {BUILD,RPMS,SOURCES,SPECS,SRPMS}
+do
+    [ ! -d ${HOME}/rpmbuild/$directory ] &&
+    [ ! -L ${HOME}/rpmbuild/$directory ] &&
+    mkdir -p ${HOME}/rpmbuild/$directory
+done
+
+# Store package information details
+PACKAGE=$(rpm -qa --qf "%{NAME} %{EPOCH} %{VERSION} %{RELEASE} %{ARCH}\n" | grep -m1 akmod-nvidia)
+NAME="$(echo $PACKAGE | cut -f1 -d\ | cut -c2-)-signed"
+EPOCH=$(echo $PACKAGE | cut -f2 -d\ )
+VERSION=$(echo $PACKAGE | cut -f3 -d\ )
+RELEASE=$(echo $PACKAGE | cut -f4 -d\ )
+ARCH=$(echo $PACKAGE | cut -f5 -d\ )
+
+# Copy, extract, sign and compress modules
+ls -1 /usr/lib/modules/$(uname -r)/extra/nvidia/* |
+while read module; do
+    echo $module
+    mkdir -p \
+        ${NAME}-${VERSION}$(dirname $module)
+    cp \
+        $module \
+        ${NAME}-${VERSION}$(dirname $module)
+    unxz -f \
+        ${NAME}-${VERSION}$(dirname $module)/$(basename $module)
+    /usr/src/kernels/$(uname -r)/scripts/sign-file \
+        sha256 \
+        /etc/pki/akmods/private/private_key.priv \
+        /etc/pki/akmods/certs/public_key.der \
+        ${NAME}-${VERSION}$(dirname $module)/$(basename ${module:0:-3})
+    xz -f \
+        ${NAME}-${VERSION}$(dirname $module)/$(basename ${module:0:-3})
+done &&
+
+# Create RPM spec file
+echo \
+"""
+Name:           $NAME
+Version:        $VERSION
+Release:        $RELEASE
+Epoch:          $EPOCH
+Summary:        Signed nvidia kernel module(s)
+License:        Redistributable, no modification permitted
+Source0:        %{name}-%{version}-%{release}.%{_arch}.tar.gz
+URL:            $URL
+Requires:       $(rpm -q kernel --qf "%{NAME} = %{VERSION}\n")
+Requires:       $(rpm -q kernel-headers --qf "%{NAME} = %{VERSION}\n")
+Requires:       $(rpm -qa --qf "%{NAME} = %{EPOCH}:%{VERSION}\n" | grep -wm1 "$(echo $PACKAGE | cut -f1 -d\ )
+BuildArch:      $ARCH
+ExclusiveArch:  $ARCH
+
+%define debug_package %{nil}
+
+%description
+Signed nvidia module(s) for kernel $(uname -r).
+
+%prep
+%setup -c -n %{name}-%{version}-%{release}.%{_arch}.tar.gz
+
+%build
+
+%install
+rm -rf %{buildroot}
+mkdir -p %{buildroot}
+tar -xf %{SOURCE0} -C %{buildroot}
+
+%files
+%defattr(-,root,root,-)
+$(find ${NAME}-${VERSION} -type f | sed "s/${NAME}-${VERSION}//")
+
+%changelog
+* $(date +"%a %b %d %Y") <$USER@$HOSTNAME>
+- Package created.""" |
+tee ${HOME}/rpmbuild/SPECS/${NAME}-${VERSION}-${RELEASE}.${ARCH}.spec &&
+
+# Compress RPM source files
+tar --remove-files \
+    -cf ${HOME}/rpmbuild/SOURCES/${NAME}-${VERSION}-${RELEASE}.${ARCH}.tar.gz \
+    -C ${NAME}-${VERSION} \
+    . &&
+
+# Build RPM file
+rpmbuild -ba ${HOME}/rpmbuild/SPECS/${NAME}-${VERSION}-${RELEASE}.${ARCH}.spec &&
+
+# Move RPM file
+mv ${HOME}/rpmbuild/RPMS/$ARCH/${NAME}-${VERSION}-${RELEASE}.${ARCH}.rpm .
+
+# Remove generated files
+sudo rm -df \
+    $(find ${HOME}/rpmbuild -type f | grep ${NAME}-${VERSION}-${RELEASE}.${ARCH}) \
+    $(find ${HOME}/rpmbuild -type d | grep ${NAME}-${VERSION}-${RELEASE}.${ARCH} | sort -r)
+
+# Remove RPM build directories
+[ $RPMBUILD = 0 ] &&
+rm -d ${HOME}/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS,}
+
+# Layer RPM package
+if ( [ -f "./${NAME}-${VERSION}-${RELEASE}.${ARCH}.rpm" ] && [ ! "$NO" = 1 ] )
+then
+    [ ! "$YES" = 1 ] &&
+    printf "Successfully generated '${NAME}-${VERSION}-${RELEASE}.${ARCH}.rpm'.\nLayer package with rpm-ostree? [y/N]\n> " &&
+    read YES &&
+    YES="$(echo ${YES,,} | tr -d '-' | cut -c-1)"
+    ( [ "$YES" = 1 ] || [ "$YES" = y ] ) &&
+    rpm-ostree install ./${NAME}-${VERSION}-${RELEASE}.${ARCH}.rpm
+fi
