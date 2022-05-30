@@ -129,6 +129,10 @@ rm -rf %{buildroot}
 mkdir -p %{buildroot}
 tar -xf %{SOURCE0} -C %{buildroot}
 
+%post
+depmod -a
+sync
+
 %files
 %defattr(-,root,root,-)
 $(find ${NAME}-${VERSION} -type f | sed "s/${NAME}-${VERSION}//")
