@@ -44,11 +44,6 @@ be entered once during the special EFI window after reboot:
 mokutil --import /etc/pki/akmods/certs/public_key.der""" &&
 exit 1
 
-# Check if RPM build directories exist
-( [ -d ${HOME}/rpmbuild ] || [ -L ${HOME}/rpmbuild ] ) &&
-RPMBUILD=1 ||
-RPMBUILD=0
-
 # Create RPM build directories
 for directory in {BUILD,RPMS,SOURCES,SPECS,SRPMS}
 do
@@ -156,12 +151,11 @@ mv ${HOME}/rpmbuild/RPMS/$ARCH/${NAME}-${VERSION}-${RELEASE}.${ARCH}.rpm .
 
 # Remove generated files
 sudo rm -df \
-    $(find ${HOME}/rpmbuild -type f | grep ${NAME}-${VERSION}-${RELEASE}.${ARCH}) \
-    $(find ${HOME}/rpmbuild -type d | grep ${NAME}-${VERSION}-${RELEASE}.${ARCH} | sort -r)
+    $(find ${HOME}/rpmbuild -type f | grep ${NAME}-${VERSION}-${RELEASE}) \
+    $(find ${HOME}/rpmbuild -type d | grep ${NAME}-${VERSION}-${RELEASE} | sort -r)
 
 # Remove RPM build directories
-[ $RPMBUILD = 0 ] &&
-rm -d ${HOME}/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS,}
+rm -d ${HOME}/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS,} 2>/dev/null
 
 # Layer RPM package
 if ( [ -f "./${NAME}-${VERSION}-${RELEASE}.${ARCH}.rpm" ] && [ ! "$NO" = 1 ] )
