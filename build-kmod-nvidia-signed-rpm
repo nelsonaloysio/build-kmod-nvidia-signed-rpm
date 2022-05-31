@@ -30,11 +30,6 @@ done
 echo "Error: please run this script as root (e.g. with 'sudo')." &&
 exit 1
 
-# Check if NVIDIA modules exist
-[ ! -d "/usr/lib/modules/$(uname -r)/extra/nvidia" ] &&
-echo "Error: unable to find '/usr/lib/modules/$(uname -r)/extra/nvidia'.\nPlease install the nvidia drivers before executing this script." &&
-exit 1
-
 # Check if akmods-generated Machine Owner Keys (MOKs) exist
 ([ ! -L /etc/pki/akmods/private/private_key.priv ] || [ ! -L /etc/pki/akmods/certs/public_key.der ] ) &&
 echo """Error: unable to find MOK in '/etc/pki/akmods/{certs,private}'.
@@ -70,8 +65,13 @@ VERSION=$(echo $PACKAGE | cut -f3 -d\ )
 RELEASE=$(echo $PACKAGE | cut -f4 -d\ )
 ARCH=$(echo $PACKAGE | cut -f5 -d\ )
 
+# Check if akmod-nvidia* is installed
+[ -z "$PACKAGE" ] &&
+echo "Error: unable to find akmod-nvidia* package, please install it before executing this script." &&
+exit 1
+
 # Copy, extract, sign and compress modules
-ls -1 /usr/lib/modules/$(uname -r)/extra/nvidia/* |
+ls -1 /usr/lib/modules/$(uname -r)/extra/nvidia*/* |
 while read module; do
     echo $module
     mkdir -p \
