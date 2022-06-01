@@ -16,7 +16,13 @@ usage: build-kmod-nvidia-signed-rpm [-h|--help]
 
 ### Before anything...
 
-**This is a Work In Progress**, and as such it hasn't been thoroughly tested. So start by pinning your current working deployment with:
+**This is a Work In Progress**, and as such it hasn't been thoroughly tested. Check if your current image is updated first:
+
+```
+rpm-ostree refresh-md && rpm-ostree ugrade
+```
+
+If required, restart your OS in order to boot into the updated deployment. Afterwards, make sure you pin it with:
 
 ```
 sudo ostree admin pin 0
@@ -24,7 +30,7 @@ sudo ostree admin pin 0
 
 That way, you have a savepoint to which you can rollback to in case anything goes south. **You have been warned!**
 
-### Installing/signing Nvidia driver & kernel modules
+### Install & sign Nvidia driver kernel modules
 
 1. On Silverblue/Kinoite, first layer the required [Nvidia proprietary driver package](https://rpmfusion.org/Howto/NVIDIA#Determining_your_card_model) with:
 
