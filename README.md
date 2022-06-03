@@ -16,7 +16,7 @@ usage: build-kmod-nvidia-signed-rpm [-h|--help]
 
 ### Before anything...
 
-**This is a Work In Progress**, and as such it hasn't been thoroughly tested. Check if your current image is updated first:
+**This is a Work In Progress**, and as such it hasn't been thoroughly tested. Check if Fedora is updated first:
 
 ```
 rpm-ostree refresh-md && rpm-ostree ugrade
