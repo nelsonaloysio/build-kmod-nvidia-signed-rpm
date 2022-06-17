@@ -51,7 +51,7 @@ sudo mokutil --import /etc/pki/akmods/certs/public_key.der
 3. Download the script to generate a new RPM file with the signed modules and layer the newly created package:
 
 ```
-sudo ./build-kmod-nvidia-signed-rpm --assume-yes
+sudo bash build-kmod-nvidia-signed-rpm --assume-yes
 ```
 
 ### Update kernel/nvidia driver
