@@ -67,7 +67,8 @@ exit 1
 
 # Copy, extract, sign and compress modules
 ls -1 /usr/lib/modules/$(uname -r)/extra/nvidia*/* |
-while read module; do
+while read module
+do
     echo $module
     mkdir -p \
         ${NAME}-${VERSION}$(dirname $module)
@@ -150,12 +151,12 @@ rpmbuild -ba ${HOME}/rpmbuild/SPECS/${NAME}-${VERSION}-${RELEASE}.${ARCH}.spec &
 mv ${HOME}/rpmbuild/RPMS/$ARCH/${NAME}-${VERSION}-${RELEASE}.${ARCH}.rpm .
 
 # Remove generated files
-sudo rm -df \
+rm -df \
     $(find ${HOME}/rpmbuild -type f | grep ${NAME}-${VERSION}-${RELEASE}) \
     $(find ${HOME}/rpmbuild -type d | grep ${NAME}-${VERSION}-${RELEASE} | sort -r)
 
 # Remove RPM build directories
-rm -d ${HOME}/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS,} 2>/dev/null
+rm -d ${HOME}/rpmbuild/{BUILD,BUILDROOT,RPMS/$ARCH,RPMS,SOURCES,SPECS,SRPMS,} 2>/dev/null
 
 # Layer RPM package
 if ( [ -f "./${NAME}-${VERSION}-${RELEASE}.${ARCH}.rpm" ] && [ ! "$NO" = 1 ] )
