@@ -19,7 +19,8 @@ usage: build-kmod-nvidia-signed-rpm [-h|--help]
 **This is a Work In Progress**, and as such it hasn't been thoroughly tested. Check if Fedora is updated first:
 
 ```
-rpm-ostree refresh-md && rpm-ostree ugrade
+rpm-ostree refresh-md &&
+rpm-ostree ugrade
 ```
 
 If required, restart your OS in order to boot into the updated deployment. Afterwards, make sure you pin it with:
@@ -44,7 +45,7 @@ rpm-ostree install akmod-nvidia
 2. Reboot the OS, [create a new Machine Owner Key](https://rpmfusion.org/Howto/Secure%20Boot) (MOK) if needed and enroll it (choose a password to be entered on next boot):
 
 ```
-sudo kmodgenca
+sudo kmodgenca &&
 sudo mokutil --import /etc/pki/akmods/certs/public_key.der
 ```
 
@@ -59,19 +60,21 @@ sudo bash build-kmod-nvidia-signed-rpm --assume-yes
 To later update the deployed kernel or Nvidia driver, remove the layered package and update the deployment:
 
 ```
-rpm-ostree remove akmod-nvidia kmod-nvidia-signed
-rpm-ostree update --install akmod-nvidia
+rpm-ostree remove kmod-nvidia-signed &&
+rpm-ostree update --install akmod-nvidia[-470xx,-390xx,-340xx]
 ```
 
 Reboot into your new deployment and execute the script again in order to sign the new Nvidia kernel modules:
 
 ```
-sudo ./build-kmod-nvidia-signed-rpm --assume-yes
+sudo bash build-kmod-nvidia-signed-rpm --assume-yes
 ```
 
 ## Notes
 
 * This script is meant as a workaround to solve issues regarding immutable deployments and unsigned drivers.
+
+* Also install the additional packages `xorg-x11-drv-nvidia-cuda` (CUDA driver) and `xorg-x11-drv-nvidia-power` (preserve memory allocation on suspend/resume) if needed.
 
 * Many thanks to [@CheariX](https://github.com/chearix) for debugging the issue and coming up with a solution to sign compressed modules on Fedora 36.
 
