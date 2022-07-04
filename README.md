@@ -4,6 +4,8 @@ Automatically signs the NVIDIA kernel modules and builds an RPM package to be la
 allowing to secure boot the OS (Fedora [Silverblue](https://silverblue.fedoraproject.org/) and
 [Kinoite](https://kinoite.fedoraproject.org/) 36+) without requiring the deployment to be made mutable.
 
+> **Alternatively, check out [silverblue-akmods-keys@CheariX](https://github.com/CheariX/silverblue-akmods-keys) for a (better!) workaround to sign any modules built by akmods.**
+
 ### Usage
 
 ```
