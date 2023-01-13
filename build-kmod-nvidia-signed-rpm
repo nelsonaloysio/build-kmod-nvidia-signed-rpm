@@ -13,8 +13,11 @@ for arg in "${@}"
 do
     case $arg in
         -h|--help)
-            echo "usage: $(basename $0) [-h|--help] [-y|--assume-yes] [-n|--assume-no]" &&
+            echo "usage: $(basename $0) [-h|--help] [-y|--assume-yes] [-n|--assume-no] [-u|--unsigned]" &&
             exit 0
+            ;;
+        -u|--unsigned)
+            UNSIGNED=1
             ;;
         -y|--assume-yes)
             YES=1
@@ -31,6 +34,7 @@ echo "Error: please run this script as root (e.g. with 'sudo')." &&
 exit 1
 
 # Check if akmods-generated Machine Owner Keys (MOKs) exist
+[ ! "$UNSIGNED" = 1 ] &&
 ([ ! -L /etc/pki/akmods/private/private_key.priv ] || [ ! -L /etc/pki/akmods/certs/public_key.der ] ) &&
 echo """Error: unable to find MOK in '/etc/pki/akmods/{certs,private}'.
 
@@ -75,15 +79,18 @@ do
     cp \
         $module \
         ${NAME}-${VERSION}$(dirname $module)
-    unxz -f \
-        ${NAME}-${VERSION}$(dirname $module)/$(basename $module)
-    /usr/src/kernels/$(uname -r)/scripts/sign-file \
-        sha256 \
-        /etc/pki/akmods/private/private_key.priv \
-        /etc/pki/akmods/certs/public_key.der \
-        ${NAME}-${VERSION}$(dirname $module)/$(basename ${module:0:-3})
-    xz -f \
-        ${NAME}-${VERSION}$(dirname $module)/$(basename ${module:0:-3})
+    if [ ! "$UNSIGNED" = 1 ]
+    then
+        unxz -f \
+            ${NAME}-${VERSION}$(dirname $module)/$(basename $module)
+        /usr/src/kernels/$(uname -r)/scripts/sign-file \
+            sha256 \
+            /etc/pki/akmods/private/private_key.priv \
+            /etc/pki/akmods/certs/public_key.der \
+            ${NAME}-${VERSION}$(dirname $module)/$(basename ${module:0:-3})
+        xz -f \
+            ${NAME}-${VERSION}$(dirname $module)/$(basename ${module:0:-3})
+    fi
 done &&
 
 # Create RPM spec file
@@ -93,13 +100,18 @@ Name:           $NAME
 Version:        $VERSION
 Release:        $RELEASE
 Epoch:          $EPOCH
-Summary:        Signed nvidia kernel module(s)
+Summary:        Nvidia kernel module(s)
 License:        Redistributable, no modification permitted
 Source0:        %{name}-%{version}-%{release}.%{_arch}.tar.gz
 URL:            $URL
 
 Requires:       $(rpm -q kernel --qf "%{NAME} = %{VERSION}\n")
 Requires:       $(rpm -qa --qf "%{NAME} = %{EPOCH}:%{VERSION}\n" | grep -wm1 "$(echo $PACKAGE | cut -f1 -d\ | sed 's/akmod/xorg-x11-drv/') ")
+
+Provides:       $(rpm -qa --qf "%{NAME} = %{EPOCH}:%{VERSION}\n" | grep -wm1 "$(echo $PACKAGE | cut -f1 -d\ )" | sed 's/akmod-nvidia/nvidia-kmod/')
+
+Provides:       $(rpm -qa --qf "%{NAME} = %{EPOCH}:%{VERSION}\n" | grep -wm1 "$(echo $PACKAGE | cut -f1 -d\ )" | cut -c 2-)
+Obsoletes:      $(rpm -qa --qf "%{NAME} = %{EPOCH}:%{VERSION}\n" | grep -wm1 "$(echo $PACKAGE | cut -f1 -d\ )" | cut -c 2-)
 
 Provides:       $(rpm -qa --qf "%{NAME} = %{EPOCH}:%{VERSION}\n" | grep -wm1 "$(echo $PACKAGE | cut -f1 -d\ )")
 Obsoletes:      $(rpm -qa --qf "%{NAME} = %{EPOCH}:%{VERSION}\n" | grep -wm1 "$(echo $PACKAGE | cut -f1 -d\ )")
@@ -113,7 +125,7 @@ ExclusiveArch:  $ARCH
 %define debug_package %{nil}
 
 %description
-Signed nvidia module(s) for kernel $(uname -r).
+Nvidia module(s) for kernel $(uname -r).
 
 %prep
 %setup -c -n %{name}-%{version}-%{release}.%{_arch}.tar.gz
@@ -135,7 +147,8 @@ $(find ${NAME}-${VERSION} -type f | sed "s/${NAME}-${VERSION}//")
 
 %changelog
 * $(date +"%a %b %d %Y") <$USER@$HOSTNAME>
-- Package created.""" |
+- Package created.
+""" |
 tee ${HOME}/rpmbuild/SPECS/${NAME}-${VERSION}-${RELEASE}.${ARCH}.spec &&
 
 # Compress RPM source files
@@ -155,7 +168,7 @@ rm -df \
     $(find ${HOME}/rpmbuild -type f | grep ${NAME}-${VERSION}-${RELEASE}) \
     $(find ${HOME}/rpmbuild -type d | grep ${NAME}-${VERSION}-${RELEASE} | sort -r)
 
-# Remove RPM build directories
+# Remove empty RPM build directories
 rm -d ${HOME}/rpmbuild/{BUILD,BUILDROOT,RPMS/$ARCH,RPMS,SOURCES,SPECS,SRPMS,} 2>/dev/null
 
 # Layer RPM package
@@ -166,5 +179,5 @@ then
     read YES &&
     YES="$(echo ${YES,,} | tr -d '-' | cut -c-1)"
     ( [ "$YES" = 1 ] || [ "$YES" = y ] ) &&
-    rpm-ostree install ./${NAME}-${VERSION}-${RELEASE}.${ARCH}.rpm
+    rpm-ostree install "./${NAME}-${VERSION}-${RELEASE}.${ARCH}.rpm"
 fi
