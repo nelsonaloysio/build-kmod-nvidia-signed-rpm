@@ -64,11 +64,10 @@ If your modules are already signed (e.g. by using [silverblue-akmods-keys@Cheari
 
 ### Update kernel/Nvidia driver
 
-To later update the deployed kernel or Nvidia driver, remove the layered package and update the deployment:
+To later update the deployed kernel or Nvidia driver, remove the layered package when issuing the command:
 
 ```
-rpm-ostree remove kmod-nvidia-signed &&
-rpm-ostree update --install akmod-nvidia[-470xx,-390xx,-340xx]
+rpm-ostree update --uninstall kmod-nvidia-signed
 ```
 
 Reboot into your new deployment and execute the script again in order to sign the new Nvidia kernel modules:
