@@ -60,7 +60,7 @@ Download the script or clone the repository to generate a new RPM file with the 
 sudo bash build-kmod-nvidia-signed-rpm --assume-yes
 ```
 
-If your modules are already signed (e.g. by using [silverblue-akmods-keys@CheariX](https://github.com/CheariX/silverblue-akmods-keys)), append `--unsigned` to the commmand for faster execution.
+**Note:** If your modules are already signed (e.g., by using [silverblue-akmods-keys@CheariX](https://github.com/CheariX/silverblue-akmods-keys)), append `--unsigned` for faster execution.
 
 ### Update kernel/Nvidia driver
 
@@ -80,10 +80,10 @@ sudo bash build-kmod-nvidia-signed-rpm --assume-yes
 
 * This script is meant as a workaround to solve issues regarding immutable deployments and unsigned drivers.
 
-* You might need the following kernel arguments added: `rpm-ostree kargs --append=rd.driver.blacklist=nouveau --append=modprobe.blacklist=nouveau --append=nvidia-drm.modeset=1`.
+* You might need the following kernel arguments added: `rpm-ostree kargs --append-if-missing=rd.driver.blacklist=nouveau --append-if-missing=modprobe.blacklist=nouveau --append-if-missing=nvidia-drm.modeset=1`.
 
 * Also install the additional packages `xorg-x11-drv-nvidia-cuda` (CUDA driver) and `xorg-x11-drv-nvidia-power` (preserve memory allocation on suspend/resume) if needed.
 
-* Many thanks to [@CheariX](https://github.com/chearix) for debugging the issue and coming up with a solution to sign compressed modules on Fedora 36.
+* Many thanks to [@CheariX](https://github.com/chearix) for debugging the issue and coming up with a solution to sign compressed modules on Fedora 36+.
 
 * For more information, please check the corresponding ticket: [fedora-silverblue#272](https://github.com/fedora-silverblue/issue-tracker/issues/272).
